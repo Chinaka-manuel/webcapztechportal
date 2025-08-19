@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const { data: profileData, error } = await supabase
               .from('profiles')
               .select('*')
-              .eq('id', session.user.id)
+              .eq('email', session.user.email)
               .single();
             
             if (error) {
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('email', session.user.email)
           .single()
           .then(({ data: profileData, error }) => {
             if (error) {
