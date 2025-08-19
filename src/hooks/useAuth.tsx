@@ -47,8 +47,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const { data: profileData, error } = await supabase
               .from('profiles')
               .select('*')
-              .eq('email', session.user.email)
-              .single();
+              .eq('id', session.user.id)
+              .maybeSingle();
             
             if (error) {
               console.error('Error fetching profile:', error);
@@ -73,8 +73,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         supabase
           .from('profiles')
           .select('*')
-          .eq('email', session.user.email)
-          .single()
+          .eq('id', session.user.id)
+          .maybeSingle()
           .then(({ data: profileData, error }) => {
             if (error) {
               console.error('Error fetching profile:', error);
