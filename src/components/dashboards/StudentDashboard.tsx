@@ -28,13 +28,13 @@ const StudentDashboard = () => {
 
     try {
       // Get student record
-      const { data: student } = await supabase
+      const { data: student, error } = await supabase
         .from('students')
         .select('*')
         .eq('user_id', profile.id)
-        .single();
+        .maybeSingle();
 
-      if (student) {
+      if (!error && student) {
         setStudentData(student);
         
         // Fetch basic stats
