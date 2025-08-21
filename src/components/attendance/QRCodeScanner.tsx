@@ -1,16 +1,195 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/hooks/use-toast';
+import { Scan, CheckCircle, Clock } from 'lucide-react';
 
 const QRCodeScanner = () => {
+  const [qrInput, setQrInput] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [lastScanned, setLastScanned] = useState<any>(null);
+
+  const handleAttendance = async () => {
+    if (!qrInput.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing QR Code",
+        description: "Please enter the QR code data",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Parse QR code data
+      let qrData;
+      try {
+        qrData = JSON.parse(qrInput);
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Invalid QR Code",
+          description: "The QR code format is invalid",
+        });
+        return;
+      }
+
+      // Check if QR code is still valid
+      const now = new Date();
+      const expiresAt = new Date(qrData.expires_at);
+      
+      if (now > expiresAt) {
+        toast({
+          variant: "destructive",
+          title: "QR Code Expired",
+          description: "This QR code has expired. Please get a new one.",
+        });
+        return;
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Required",
+          description: "You must be logged in to mark attendance",
+        });
+        return;
+      }
+
+      // Get student record
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (studentError || !studentData) {
+        toast({
+          variant: "destructive",
+          title: "Student Record Not Found",
+          description: "No student record found for your account",
+        });
+        return;
+      }
+
+      // Check if attendance already exists
+      const { data: existingAttendance } = await supabase
+        .from('attendance_records')
+        .select('id')
+        .eq('student_id', studentData.id)
+        .eq('qr_code_id', qrData.qr_code_id)
+        .single();
+
+      if (existingAttendance) {
+        toast({
+          variant: "destructive",
+          title: "Already Marked",
+          description: "You have already marked attendance for this session",
+        });
+        return;
+      }
+
+      // Mark attendance
+      const { error: attendanceError } = await supabase
+        .from('attendance_records')
+        .insert({
+          student_id: studentData.id,
+          qr_code_id: qrData.qr_code_id,
+          status: 'present',
+          notes: notes.trim() || null,
+          check_in_time: new Date().toISOString(),
+        });
+
+      if (attendanceError) throw attendanceError;
+
+      setLastScanned({
+        session_name: qrData.session_name,
+        timestamp: new Date().toLocaleString(),
+      });
+
+      toast({
+        title: "Attendance Marked",
+        description: "Your attendance has been successfully recorded",
+      });
+
+      // Reset form
+      setQrInput('');
+      setNotes('');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>QR Code Scanner</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Scan className="w-5 h-5" />
+          QR Code Scanner
+        </CardTitle>
         <CardDescription>Scan QR codes to mark your attendance</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="text-center py-8 text-muted-foreground">
-          QR Code scanning feature coming soon...
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="qr_input">QR Code Data</Label>
+          <Textarea
+            id="qr_input"
+            placeholder="Paste or type the QR code data here..."
+            value={qrInput}
+            onChange={(e) => setQrInput(e.target.value)}
+            rows={4}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Note: In a real app, this would use camera scanning. For now, copy the QR data from the generator.
+          </p>
         </div>
+
+        <div>
+          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Input
+            id="notes"
+            placeholder="Any additional notes..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+
+        <Button onClick={handleAttendance} disabled={loading} className="w-full">
+          {loading ? (
+            <Clock className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <CheckCircle className="w-4 h-4 mr-2" />
+          )}
+          Mark Attendance
+        </Button>
+
+        {lastScanned && (
+          <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="w-4 h-4" />
+              <span className="font-medium">Attendance Marked</span>
+            </div>
+            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+              Session: {lastScanned.session_name}
+            </p>
+            <p className="text-xs text-green-500 dark:text-green-500">
+              Time: {lastScanned.timestamp}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

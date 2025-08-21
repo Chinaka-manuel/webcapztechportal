@@ -202,13 +202,13 @@ const AttendanceManagement = () => {
                      <TableCell className="font-medium">
                        {record.students?.profiles?.full_name || 'Unknown Student'}
                      </TableCell>
-                    <TableCell>{record.students.student_id}</TableCell>
-                    <TableCell>{record.qr_codes.courses.course_code}</TableCell>
+                     <TableCell>{record.students?.student_id || 'Unknown ID'}</TableCell>
+                     <TableCell>{record.qr_codes?.courses?.course_code || 'Unknown Course'}</TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{record.qr_codes.session_name}</div>
+                        <div className="font-medium">{record.qr_codes?.session_name || 'Unknown Session'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {formatDate(record.qr_codes.session_date)}
+                          {formatDate(record.qr_codes?.session_date || new Date().toISOString())}
                         </div>
                       </div>
                     </TableCell>
