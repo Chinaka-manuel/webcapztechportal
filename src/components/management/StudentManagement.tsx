@@ -259,7 +259,7 @@ const StudentManagement = () => {
             {students.map((student) => (
               <TableRow key={student.id}>
                 <TableCell className="font-medium">{student.student_id}</TableCell>
-                <TableCell>{student.profiles.full_name}</TableCell>
+                <TableCell>{student.profiles?.full_name || 'Unknown Student'}</TableCell>
                 <TableCell>{student.course}</TableCell>
                 <TableCell>{student.semester}</TableCell>
                 <TableCell>

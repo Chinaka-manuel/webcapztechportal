@@ -325,7 +325,7 @@ const ExamManagement = () => {
             {exams.map((exam) => (
               <TableRow key={exam.id}>
                 <TableCell className="font-medium">{exam.exam_name}</TableCell>
-                <TableCell>{exam.courses.course_code}</TableCell>
+                <TableCell>{exam.courses?.course_code || 'Unknown Course'}</TableCell>
                 <TableCell>
                   <Badge variant={getExamTypeColor(exam.exam_type)}>
                     {exam.exam_type}
