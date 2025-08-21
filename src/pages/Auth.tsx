@@ -56,7 +56,7 @@ const Auth = () => {
               <GraduationCap className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">TechSchool Manager</CardTitle>
+          <CardTitle className="text-2xl font-bold">WEBCAPZ</CardTitle>
           <CardDescription>
             Comprehensive school management system
           </CardDescription>

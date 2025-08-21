@@ -13,7 +13,7 @@ const Index = () => {
             <GraduationCap className="h-12 w-12 text-primary-foreground" />
           </div>
         </div>
-        <h1 className="text-4xl font-bold mb-4">TechSchool Manager</h1>
+        <h1 className="text-4xl font-bold mb-4">WEBCAPZ</h1>
         <p className="text-xl text-muted-foreground mb-8">
           Complete school management system with QR-based attendance, exam management, and role-based dashboards.
         </p>
