@@ -246,10 +246,10 @@ const StaffManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {staff.map((staffMember) => (
-              <TableRow key={staffMember.id}>
-                <TableCell className="font-medium">{staffMember.employee_id}</TableCell>
-                <TableCell>{staffMember.profiles.full_name}</TableCell>
+             {staff.map((staffMember) => (
+               <TableRow key={staffMember.id}>
+                 <TableCell className="font-medium">{staffMember.employee_id}</TableCell>
+                 <TableCell>{staffMember.profiles?.full_name || 'Unknown Staff'}</TableCell>
                 <TableCell>{staffMember.department}</TableCell>
                 <TableCell>{staffMember.position}</TableCell>
                 <TableCell>{new Date(staffMember.hire_date).toLocaleDateString()}</TableCell>

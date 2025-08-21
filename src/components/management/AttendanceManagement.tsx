@@ -197,11 +197,11 @@ const AttendanceManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attendanceRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">
-                      {record.students.profiles.full_name}
-                    </TableCell>
+                 {attendanceRecords.map((record) => (
+                   <TableRow key={record.id}>
+                     <TableCell className="font-medium">
+                       {record.students?.profiles?.full_name || 'Unknown Student'}
+                     </TableCell>
                     <TableCell>{record.students.student_id}</TableCell>
                     <TableCell>{record.qr_codes.courses.course_code}</TableCell>
                     <TableCell>

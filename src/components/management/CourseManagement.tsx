@@ -278,11 +278,11 @@ const CourseManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No instructor assigned</SelectItem>
-                      {staff.map(s => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.profiles.full_name}
-                        </SelectItem>
-                      ))}
+                       {staff.map(s => (
+                         <SelectItem key={s.id} value={s.id}>
+                           {s.profiles?.full_name || 'Unknown Staff'}
+                         </SelectItem>
+                       ))}
                     </SelectContent>
                   </Select>
                 </div>
