@@ -39,7 +39,7 @@ interface Course {
 const AttendanceManagement = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
 
@@ -98,7 +98,7 @@ const AttendanceManagement = () => {
         .order('check_in_time', { ascending: false });
 
       // Filter by course if selected
-      if (selectedCourse) {
+      if (selectedCourse && selectedCourse !== 'all') {
         query = query.eq('qr_codes.course_id', selectedCourse);
       }
 
@@ -152,14 +152,15 @@ const AttendanceManagement = () => {
         <CardTitle>Attendance Management</CardTitle>
         <CardDescription>Monitor student attendance across sessions</CardDescription>
         
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <div className="flex-1">
+            <label className="block text-sm font-medium mb-2">Filter by Course</label>
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="All courses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All courses</SelectItem>
+                <SelectItem value="all">All courses</SelectItem>
                 {courses.map(course => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.course_code} - {course.course_name}
@@ -169,6 +170,7 @@ const AttendanceManagement = () => {
             </Select>
           </div>
           <div className="flex-1">
+            <label className="block text-sm font-medium mb-2">Filter by Date</label>
             <input
               type="date"
               value={selectedDate}
@@ -181,61 +183,70 @@ const AttendanceManagement = () => {
       
       <CardContent>
         {loading ? (
-          <div className="text-center py-8">Loading attendance records...</div>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3 text-muted-foreground">Loading attendance records...</span>
+          </div>
         ) : (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Student ID</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Check In</TableHead>
-                  <TableHead>Check Out</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                 {attendanceRecords.map((record) => (
-                   <TableRow key={record.id}>
-                     <TableCell className="font-medium">
-                       {record.students?.profiles?.full_name || 'Unknown Student'}
-                     </TableCell>
-                     <TableCell>{record.students?.student_id || 'Unknown ID'}</TableCell>
-                     <TableCell>{record.qr_codes?.courses?.course_code || 'Unknown Course'}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{record.qr_codes?.session_name || 'Unknown Session'}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(record.qr_codes?.session_date || new Date().toISOString())}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatTime(record.check_in_time)}</TableCell>
-                    <TableCell>
-                      {record.check_out_time 
-                        ? formatTime(record.check_out_time) 
-                        : '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusColor(record.status)}>
-                        {record.status}
-                      </Badge>
-                    </TableCell>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Student</TableHead>
+                    <TableHead className="font-semibold">Student ID</TableHead>
+                    <TableHead className="font-semibold">Course</TableHead>
+                    <TableHead className="font-semibold">Session</TableHead>
+                    <TableHead className="font-semibold">Check In</TableHead>
+                    <TableHead className="font-semibold">Check Out</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                   {attendanceRecords.map((record) => (
+                     <TableRow key={record.id} className="hover:bg-muted/25 transition-colors">
+                       <TableCell className="font-medium">
+                         {record.students?.profiles?.full_name || 'Unknown Student'}
+                       </TableCell>
+                       <TableCell className="text-muted-foreground">{record.students?.student_id || 'Unknown ID'}</TableCell>
+                       <TableCell>
+                         <div className="font-medium">{record.qr_codes?.courses?.course_code || 'Unknown Course'}</div>
+                         <div className="text-sm text-muted-foreground">{record.qr_codes?.courses?.course_name || ''}</div>
+                       </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{record.qr_codes?.session_name || 'Unknown Session'}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDate(record.qr_codes?.session_date || new Date().toISOString())}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{formatTime(record.check_in_time)}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {record.check_out_time 
+                          ? formatTime(record.check_out_time) 
+                          : <span className="text-muted-foreground">Not checked out</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusColor(record.status)} className="capitalize">
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             
             {attendanceRecords.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <QrCode className="mx-auto h-12 w-12 mb-4" />
-                <div>No attendance records found for the selected filters.</div>
-                <div className="text-sm mt-2">
-                  Students need to scan QR codes to mark attendance.
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <QrCode className="h-10 w-10" />
                 </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">No attendance records found</h3>
+                <p className="text-sm">No attendance records match your current filters.</p>
+                <p className="text-sm mt-1">Students need to scan QR codes to mark attendance.</p>
               </div>
             )}
           </>

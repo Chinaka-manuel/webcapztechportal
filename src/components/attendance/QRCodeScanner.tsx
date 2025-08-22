@@ -143,27 +143,31 @@ const QRCodeScanner = () => {
         <CardDescription>Scan QR codes to mark your attendance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
-          <Label htmlFor="qr_input">QR Code Data</Label>
+        <div className="space-y-2">
+          <Label htmlFor="qr_input" className="text-sm font-medium">QR Code Data</Label>
           <Textarea
             id="qr_input"
             placeholder="Paste or type the QR code data here..."
             value={qrInput}
             onChange={(e) => setQrInput(e.target.value)}
             rows={4}
+            className="bg-background font-mono text-sm"
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            Note: In a real app, this would use camera scanning. For now, copy the QR data from the generator.
-          </p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              💡 <strong>Demo Mode:</strong> In a real app, this would use camera scanning. For now, copy the QR data from the generator.
+            </p>
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="notes">Notes (Optional)</Label>
+        <div className="space-y-2">
+          <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
           <Input
             id="notes"
             placeholder="Any additional notes..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            className="bg-background"
           />
         </div>
 
@@ -177,17 +181,19 @@ const QRCodeScanner = () => {
         </Button>
 
         {lastScanned && (
-          <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <CheckCircle className="w-4 h-4" />
-              <span className="font-medium">Attendance Marked</span>
+          <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-3">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-semibold">Attendance Successfully Marked!</span>
             </div>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              Session: {lastScanned.session_name}
-            </p>
-            <p className="text-xs text-green-500 dark:text-green-500">
-              Time: {lastScanned.timestamp}
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-green-600 dark:text-green-400">
+                <strong>Session:</strong> {lastScanned.session_name}
+              </p>
+              <p className="text-xs text-green-500 dark:text-green-500">
+                <strong>Marked at:</strong> {lastScanned.timestamp}
+              </p>
+            </div>
           </div>
         )}
       </CardContent>

@@ -137,29 +137,33 @@ const QRCodeGenerator = () => {
         <CardDescription>Generate QR codes for attendance tracking</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="course">Course</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="course" className="text-sm font-medium">Course</Label>
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Select a course" />
               </SelectTrigger>
               <SelectContent>
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
-                    {course.course_code} - {course.course_name}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{course.course_code}</span>
+                      <span className="text-sm text-muted-foreground">{course.course_name}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label htmlFor="session_name">Session Name</Label>
+          <div className="space-y-2">
+            <Label htmlFor="session_name" className="text-sm font-medium">Session Name</Label>
             <Input
               id="session_name"
-              placeholder="e.g., Lecture 1, Tutorial 3"
+              placeholder="e.g., Lecture 1, Tutorial 3, Lab Session"
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
+              className="bg-background"
             />
           </div>
         </div>
@@ -179,21 +183,30 @@ const QRCodeGenerator = () => {
         </div>
 
         {qrCodeUrl && (
-          <div className="border rounded-lg p-6 text-center space-y-4">
-            <img
-              src={qrCodeUrl}
-              alt="QR Code"
-              className="mx-auto border rounded"
-            />
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                QR Code for: <strong>{sessionName}</strong>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Expires in 2 hours from generation
-              </p>
+          <div className="border rounded-lg p-6 text-center space-y-6 bg-gradient-to-br from-background to-muted/50">
+            <div className="bg-white p-4 rounded-lg shadow-sm inline-block">
+              <img
+                src={qrCodeUrl}
+                alt="QR Code"
+                className="mx-auto"
+              />
             </div>
-            <Button onClick={downloadQRCode} variant="outline">
+            <div className="space-y-3">
+              <div>
+                <p className="text-lg font-semibold text-foreground">
+                  {sessionName}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Course: {courses.find(c => c.id === selectedCourse)?.course_code}
+                </p>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  ⏰ This QR code expires in 2 hours from generation
+                </p>
+              </div>
+            </div>
+            <Button onClick={downloadQRCode} variant="outline" className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Download QR Code
             </Button>
