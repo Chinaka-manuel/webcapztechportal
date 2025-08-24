@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
-import { QrCode, Download, RefreshCw } from 'lucide-react';
+import { QrCode, Download, RefreshCw, Globe } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -22,6 +23,7 @@ const QRCodeGenerator = () => {
   const [qrCodeData, setQrCodeData] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPermanent, setIsPermanent] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -47,7 +49,7 @@ const QRCodeGenerator = () => {
   };
 
   const generateQRCode = async () => {
-    if (!selectedCourse || !sessionName.trim()) {
+    if (!isPermanent && (!selectedCourse || !sessionName.trim())) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -56,21 +58,39 @@ const QRCodeGenerator = () => {
       return;
     }
 
+    if (isPermanent && !sessionName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please enter a session name for the permanent QR code",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // Create QR code record in database
-      const expires_at = new Date();
-      expires_at.setHours(expires_at.getHours() + 2); // Expires in 2 hours
+      let expires_at = null;
+      if (!isPermanent) {
+        expires_at = new Date();
+        expires_at.setHours(expires_at.getHours() + 2); // Expires in 2 hours
+      }
+
+      const insertData: any = {
+        session_name: sessionName,
+        code: crypto.randomUUID(),
+        qr_type: isPermanent ? 'general' : 'course',
+        created_by: (await supabase.auth.getUser()).data.user?.id,
+      };
+
+      if (!isPermanent) {
+        insertData.course_id = selectedCourse;
+        insertData.expires_at = expires_at!.toISOString();
+      }
 
       const { data, error } = await supabase
         .from('qr_codes')
-        .insert({
-          course_id: selectedCourse,
-          session_name: sessionName,
-          code: crypto.randomUUID(),
-          expires_at: expires_at.toISOString(),
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -79,9 +99,10 @@ const QRCodeGenerator = () => {
       // Generate QR code image
       const qrData = JSON.stringify({
         qr_code_id: data.id,
-        course_id: selectedCourse,
+        course_id: isPermanent ? null : selectedCourse,
         session_name: sessionName,
-        expires_at: expires_at.toISOString(),
+        qr_type: isPermanent ? 'general' : 'course',
+        expires_at: isPermanent ? null : expires_at!.toISOString(),
       });
 
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
@@ -125,6 +146,7 @@ const QRCodeGenerator = () => {
     setSessionName('');
     setQrCodeUrl('');
     setQrCodeData('');
+    setIsPermanent(false);
   };
 
   return (
@@ -137,30 +159,51 @@ const QRCodeGenerator = () => {
         <CardDescription>Generate QR codes for attendance tracking</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="course" className="text-sm font-medium">Course</Label>
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select a course" />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{course.course_code}</span>
-                      <span className="text-sm text-muted-foreground">{course.course_name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex items-center space-x-2 p-4 border border-dashed border-muted rounded-lg bg-muted/30">
+          <Switch
+            id="permanent-mode"
+            checked={isPermanent}
+            onCheckedChange={setIsPermanent}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="permanent-mode" className="text-sm font-medium flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Permanent General QR Code
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Create a permanent QR code that doesn't expire and can be used by all staff and students
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="session_name" className="text-sm font-medium">Session Name</Label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {!isPermanent && (
+            <div className="space-y-2">
+              <Label htmlFor="course" className="text-sm font-medium">Course</Label>
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select a course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{course.course_code}</span>
+                        <span className="text-sm text-muted-foreground">{course.course_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className={`space-y-2 ${isPermanent ? 'md:col-span-2' : ''}`}>
+            <Label htmlFor="session_name" className="text-sm font-medium">
+              {isPermanent ? 'QR Code Name' : 'Session Name'}
+            </Label>
             <Input
               id="session_name"
-              placeholder="e.g., Lecture 1, Tutorial 3, Lab Session"
+              placeholder={isPermanent ? "e.g., General Attendance, Building Entry" : "e.g., Lecture 1, Tutorial 3, Lab Session"}
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
               className="bg-background"
@@ -172,10 +215,12 @@ const QRCodeGenerator = () => {
           <Button onClick={generateQRCode} disabled={loading} className="flex-1">
             {loading ? (
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : isPermanent ? (
+              <Globe className="w-4 h-4 mr-2" />
             ) : (
               <QrCode className="w-4 h-4 mr-2" />
             )}
-            Generate QR Code
+            Generate {isPermanent ? 'Permanent' : 'Temporary'} QR Code
           </Button>
           <Button variant="outline" onClick={resetForm}>
             Reset
@@ -196,15 +241,30 @@ const QRCodeGenerator = () => {
                 <p className="text-lg font-semibold text-foreground">
                   {sessionName}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Course: {courses.find(c => c.id === selectedCourse)?.course_code}
-                </p>
+                {!isPermanent && (
+                  <p className="text-sm text-muted-foreground">
+                    Course: {courses.find(c => c.id === selectedCourse)?.course_code}
+                  </p>
+                )}
+                {isPermanent && (
+                  <p className="text-sm text-muted-foreground">
+                    General Attendance QR Code
+                  </p>
+                )}
               </div>
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  ⏰ This QR code expires in 2 hours from generation
-                </p>
-              </div>
+              {isPermanent ? (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3">
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    ♾️ This is a permanent QR code - it never expires and can be used by all staff and students
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    ⏰ This QR code expires in 2 hours from generation
+                  </p>
+                </div>
+              )}
             </div>
             <Button onClick={downloadQRCode} variant="outline" className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />

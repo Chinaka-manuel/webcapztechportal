@@ -39,17 +39,19 @@ const QRCodeScanner = () => {
         return;
       }
 
-      // Check if QR code is still valid
-      const now = new Date();
-      const expiresAt = new Date(qrData.expires_at);
-      
-      if (now > expiresAt) {
-        toast({
-          variant: "destructive",
-          title: "QR Code Expired",
-          description: "This QR code has expired. Please get a new one.",
-        });
-        return;
+      // Check if QR code is still valid (only for temporary codes)
+      if (qrData.qr_type === 'course' && qrData.expires_at) {
+        const now = new Date();
+        const expiresAt = new Date(qrData.expires_at);
+        
+        if (now > expiresAt) {
+          toast({
+            variant: "destructive",
+            title: "QR Code Expired",
+            description: "This QR code has expired. Please get a new one.",
+          });
+          return;
+        }
       }
 
       // Get current user
@@ -63,29 +65,67 @@ const QRCodeScanner = () => {
         return;
       }
 
-      // Get student record
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('user_id', user.id)
+      // Get student or staff record based on user profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
         .single();
 
-      if (studentError || !studentData) {
+      let attendeeData = null;
+      let attendeeType = '';
+
+      if (profileData?.role === 'student') {
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (studentError || !studentData) {
+          toast({
+            variant: "destructive",
+            title: "Student Record Not Found",
+            description: "No student record found for your account",
+          });
+          return;
+        }
+        attendeeData = studentData;
+        attendeeType = 'student';
+      } else if (profileData?.role === 'staff' || profileData?.role === 'admin') {
+        const { data: staffData, error: staffError } = await supabase
+          .from('staff')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (staffError || !staffData) {
+          toast({
+            variant: "destructive",
+            title: "Staff Record Not Found",
+            description: "No staff record found for your account",
+          });
+          return;
+        }
+        attendeeData = staffData;
+        attendeeType = 'staff';
+      } else {
         toast({
           variant: "destructive",
-          title: "Student Record Not Found",
-          description: "No student record found for your account",
+          title: "Invalid User Role",
+          description: "Only students and staff can mark attendance",
         });
         return;
       }
 
       // Check if attendance already exists
+      const attendeeIdField = attendeeType === 'student' ? 'student_id' : 'staff_id';
       const { data: existingAttendance } = await supabase
         .from('attendance_records')
         .select('id')
-        .eq('student_id', studentData.id)
+        .eq(attendeeIdField, attendeeData.id)
         .eq('qr_code_id', qrData.qr_code_id)
-        .single();
+        .maybeSingle();
 
       if (existingAttendance) {
         toast({
@@ -97,15 +137,23 @@ const QRCodeScanner = () => {
       }
 
       // Mark attendance
+      const attendanceRecord: any = {
+        qr_code_id: qrData.qr_code_id,
+        status: 'present',
+        notes: notes.trim() || null,
+        check_in_time: new Date().toISOString(),
+      };
+      
+      // Set the appropriate ID field based on user type
+      if (attendeeType === 'student') {
+        attendanceRecord.student_id = attendeeData.id;
+      } else {
+        attendanceRecord.staff_id = attendeeData.id;
+      }
+
       const { error: attendanceError } = await supabase
         .from('attendance_records')
-        .insert({
-          student_id: studentData.id,
-          qr_code_id: qrData.qr_code_id,
-          status: 'present',
-          notes: notes.trim() || null,
-          check_in_time: new Date().toISOString(),
-        });
+        .insert(attendanceRecord);
 
       if (attendanceError) throw attendanceError;
 

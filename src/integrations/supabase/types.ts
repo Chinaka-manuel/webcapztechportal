@@ -253,31 +253,34 @@ export type Database = {
       qr_codes: {
         Row: {
           code: string
-          course_id: string
+          course_id: string | null
           created_at: string
           created_by: string
-          expires_at: string
+          expires_at: string | null
           id: string
+          qr_type: string
           session_date: string
           session_name: string
         }
         Insert: {
           code: string
-          course_id: string
+          course_id?: string | null
           created_at?: string
           created_by: string
-          expires_at: string
+          expires_at?: string | null
           id?: string
+          qr_type?: string
           session_date?: string
           session_name: string
         }
         Update: {
           code?: string
-          course_id?: string
+          course_id?: string | null
           created_at?: string
           created_by?: string
-          expires_at?: string
+          expires_at?: string | null
           id?: string
+          qr_type?: string
           session_date?: string
           session_name?: string
         }
