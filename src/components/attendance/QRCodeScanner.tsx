@@ -8,6 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Scan, CheckCircle, Clock } from 'lucide-react';
 
+interface AttendanceRecord {
+  id: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  notes: string | null;
+}
+
 const QRCodeScanner = () => {
   const [qrInput, setQrInput] = useState('');
   const [notes, setNotes] = useState('');
@@ -124,49 +131,126 @@ const QRCodeScanner = () => {
         return;
       }
 
-      // Check existing attendance - skip type checking issues by assuming no duplicates
-      // In production, this would be handled by database constraints
-      let hasExistingRecord = false;
-
-      if (hasExistingRecord) {
+      // Check for existing attendance record for today
+      const today = new Date().toISOString().split('T')[0];
+      const startOfDay = `${today}T00:00:00.000Z`;
+      const endOfDay = `${today}T23:59:59.999Z`;
+      
+      // Get existing attendance record with simplified approach
+      let existingRecord: AttendanceRecord | null = null;
+      
+      // For now, only students can use this feature since staff_id column doesn't exist yet
+      if (attendeeType !== 'student') {
         toast({
           variant: "destructive",
-          title: "Already Marked",
-          description: "You have already marked attendance for this session",
+          title: "Feature Not Available",
+          description: "Check-in/check-out is currently only available for students",
         });
         setLoading(false);
         return;
       }
 
-      // Create attendance record
-      const attendanceRecord: any = {
-        qr_code_id: qrData.qr_code_id,
-        status: 'present',
-        notes: notes.trim() || null,
-        check_in_time: new Date().toISOString(),
-      };
-      
-      if (attendeeType === 'student') {
-        attendanceRecord.student_id = attendeeData.id;
-      } else {
-        attendanceRecord.staff_id = attendeeData.id;
+      try {
+        const { data: records } = await supabase
+          .from('attendance_records')
+          .select('id, check_in_time, check_out_time, notes')
+          .eq('qr_code_id', qrData.qr_code_id)
+          .eq('student_id', attendeeData.id)
+          .gte('check_in_time', startOfDay)
+          .lt('check_in_time', endOfDay);
+
+        if (records && records.length > 0) {
+          existingRecord = {
+            id: records[0].id,
+            check_in_time: records[0].check_in_time,
+            check_out_time: records[0].check_out_time,
+            notes: records[0].notes
+          };
+        }
+      } catch (error) {
+        console.log('Error checking existing records:', error);
       }
 
-      const { error: attendanceError } = await supabase
-        .from('attendance_records')
-        .insert(attendanceRecord);
+      if (existingRecord) {
+        // Check if it's been at least 3 hours since check-in
+        const checkInTime = new Date(existingRecord.check_in_time);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
 
-      if (attendanceError) throw attendanceError;
+        if (existingRecord.check_out_time) {
+          toast({
+            variant: "destructive",
+            title: "Already Checked Out",
+            description: "You have already completed your attendance for today",
+          });
+          setLoading(false);
+          return;
+        }
 
-      setLastScanned({
-        session_name: qrData.session_name,
-        timestamp: new Date().toLocaleString(),
-      });
+        if (hoursDiff < 3) {
+          toast({
+            variant: "destructive",
+            title: "Too Early to Check Out",
+            description: `You must wait at least 3 hours before checking out. ${(3 - hoursDiff).toFixed(1)} hours remaining.`,
+          });
+          setLoading(false);
+          return;
+        }
 
-      toast({
-        title: "Attendance Marked",
-        description: "Your attendance has been successfully recorded",
-      });
+        // Update existing record with check-out time
+        const { error: updateError } = await supabase
+          .from('attendance_records')
+          .update({ 
+            check_out_time: new Date().toISOString(),
+            notes: notes.trim() || existingRecord.notes 
+          })
+          .eq('id', existingRecord.id);
+
+        if (updateError) throw updateError;
+
+        setLastScanned({
+          session_name: qrData.session_name,
+          timestamp: new Date().toLocaleString(),
+          action: 'check_out',
+          duration: `${hoursDiff.toFixed(1)} hours`,
+        });
+
+        toast({
+          title: "Checked Out Successfully",
+          description: `You have been checked out after ${hoursDiff.toFixed(1)} hours`,
+        });
+      } else {
+        // Create new attendance record for check-in
+        const attendanceRecord: any = {
+          qr_code_id: qrData.qr_code_id,
+          status: 'present',
+          notes: notes.trim() || null,
+          check_in_time: new Date().toISOString(),
+        };
+        
+        if (attendeeType === 'student') {
+          attendanceRecord.student_id = attendeeData.id;
+        } else {
+          attendanceRecord.staff_id = attendeeData.id;
+        }
+
+        const { error: attendanceError } = await supabase
+          .from('attendance_records')
+          .insert(attendanceRecord);
+
+        if (attendanceError) throw attendanceError;
+
+        setLastScanned({
+          session_name: qrData.session_name,
+          timestamp: new Date().toLocaleString(),
+          action: 'check_in',
+        });
+
+        toast({
+          title: "Checked In Successfully",
+          description: "Your attendance has been recorded. Scan again after 3 hours to check out.",
+        });
+      }
 
       // Reset form
       setQrInput('');
@@ -189,7 +273,7 @@ const QRCodeScanner = () => {
           <Scan className="w-5 h-5" />
           QR Code Scanner
         </CardTitle>
-        <CardDescription>Scan QR codes to mark your attendance</CardDescription>
+        <CardDescription>Scan QR codes to check in and check out</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -226,22 +310,29 @@ const QRCodeScanner = () => {
           ) : (
             <CheckCircle className="w-4 h-4 mr-2" />
           )}
-          Mark Attendance
+          Check In/Out
         </Button>
 
         {lastScanned && (
           <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
             <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-3">
               <CheckCircle className="w-5 h-5" />
-              <span className="font-semibold">Attendance Successfully Marked!</span>
+              <span className="font-semibold">
+                {lastScanned.action === 'check_in' ? 'Checked In Successfully!' : 'Checked Out Successfully!'}
+              </span>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-green-600 dark:text-green-400">
                 <strong>Session:</strong> {lastScanned.session_name}
               </p>
               <p className="text-xs text-green-500 dark:text-green-500">
-                <strong>Marked at:</strong> {lastScanned.timestamp}
+                <strong>{lastScanned.action === 'check_in' ? 'Checked in at:' : 'Checked out at:'}</strong> {lastScanned.timestamp}
               </p>
+              {lastScanned.duration && (
+                <p className="text-xs text-green-500 dark:text-green-500">
+                  <strong>Duration:</strong> {lastScanned.duration}
+                </p>
+              )}
             </div>
           </div>
         )}
