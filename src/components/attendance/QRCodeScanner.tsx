@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import QrScanner from 'qr-scanner';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { Scan, CheckCircle, Clock } from 'lucide-react';
+import { Scan, CheckCircle, Clock, Camera, CameraOff } from 'lucide-react';
 
 interface AttendanceRecord {
   id: string;
@@ -20,6 +21,64 @@ const QRCodeScanner = () => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastScanned, setLastScanned] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup scanner on unmount
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const startCamera = async () => {
+    if (!videoRef.current) return;
+
+    try {
+      setIsScanning(true);
+      setScanError('');
+      
+      qrScannerRef.current = new QrScanner(
+        videoRef.current,
+        (result) => {
+          setQrInput(result.data);
+          stopCamera();
+          toast({
+            title: "QR Code Detected",
+            description: "QR code has been scanned successfully!",
+          });
+        },
+        {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+
+      await qrScannerRef.current.start();
+    } catch (error: any) {
+      setScanError(`Camera error: ${error.message}`);
+      setIsScanning(false);
+      toast({
+        variant: "destructive",
+        title: "Camera Error",
+        description: "Unable to access camera. Please check permissions or use manual input.",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+    }
+    setIsScanning(false);
+  };
 
   const handleAttendance = async () => {
     if (!qrInput.trim()) {
@@ -276,21 +335,57 @@ const QRCodeScanner = () => {
         <CardDescription>Scan QR codes to check in and check out</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Camera Scanner Section */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium">Camera Scanner</Label>
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className={`w-full h-64 bg-muted rounded-lg ${!isScanning ? 'hidden' : ''}`}
+              playsInline
+            />
+            {!isScanning && (
+              <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border">
+                <div className="text-center">
+                  <Camera className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Camera preview will appear here</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            {!isScanning ? (
+              <Button onClick={startCamera} className="flex-1">
+                <Camera className="w-4 h-4 mr-2" />
+                Start Camera
+              </Button>
+            ) : (
+              <Button onClick={stopCamera} variant="destructive" className="flex-1">
+                <CameraOff className="w-4 h-4 mr-2" />
+                Stop Camera
+              </Button>
+            )}
+          </div>
+          
+          {scanError && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+              <p className="text-sm text-destructive">{scanError}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Manual Input Section */}
         <div className="space-y-2">
-          <Label htmlFor="qr_input" className="text-sm font-medium">QR Code Data</Label>
+          <Label htmlFor="qr_input" className="text-sm font-medium">Manual QR Code Input</Label>
           <Textarea
             id="qr_input"
-            placeholder="Paste or type the QR code data here..."
+            placeholder="Or paste the QR code data here manually..."
             value={qrInput}
             onChange={(e) => setQrInput(e.target.value)}
             rows={4}
             className="bg-background font-mono text-sm"
           />
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              💡 <strong>Demo Mode:</strong> In a real app, this would use camera scanning. For now, copy the QR data from the generator.
-            </p>
-          </div>
         </div>
 
         <div className="space-y-2">
