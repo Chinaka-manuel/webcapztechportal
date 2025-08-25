@@ -19,11 +19,17 @@ interface Student {
   status: string;
   enrollment_date: string;
   emergency_contact?: string;
+  registered_by?: string;
   profiles: {
     full_name: string;
     email: string;
     phone?: string;
-  };
+    profile_picture_url?: string;
+    address?: string;
+  } | null;
+  registered_by_profile?: {
+    full_name: string;
+  } | null;
 }
 
 const StudentManagement = () => {
@@ -50,16 +56,21 @@ const StudentManagement = () => {
         .from('students')
         .select(`
           *,
-          profiles (
+          profiles:user_id (
             full_name,
             email,
-            phone
+            phone,
+            profile_picture_url,
+            address
+          ),
+          registered_by_profile:profiles!registered_by (
+            full_name
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStudents(data || []);
+      setStudents((data as any) || []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({
@@ -252,6 +263,7 @@ const StudentManagement = () => {
               <TableHead>Course</TableHead>
               <TableHead>Semester</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Registered By</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -259,13 +271,27 @@ const StudentManagement = () => {
             {students.map((student) => (
               <TableRow key={student.id}>
                 <TableCell className="font-medium">{student.student_id}</TableCell>
-                <TableCell>{student.profiles?.full_name || 'Unknown Student'}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    {student.profiles?.profile_picture_url && (
+                      <img 
+                        src={student.profiles.profile_picture_url} 
+                        alt={student.profiles.full_name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    )}
+                    <span>{student.profiles?.full_name || 'Unknown Student'}</span>
+                  </div>
+                </TableCell>
                 <TableCell>{student.course}</TableCell>
                 <TableCell>{student.semester}</TableCell>
                 <TableCell>
                   <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
                     {student.status}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {student.registered_by_profile?.full_name || 'Unknown'}
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">

@@ -30,7 +30,12 @@ const StudentDashboard = () => {
       // Get student record
       const { data: student, error } = await supabase
         .from('students')
-        .select('*')
+        .select(`
+          *,
+          registered_by_profile:profiles!registered_by (
+            full_name
+          )
+        `)
         .eq('user_id', profile.id)
         .maybeSingle();
 
@@ -68,9 +73,12 @@ const StudentDashboard = () => {
             <h1 className="text-2xl font-bold text-foreground">Student Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {profile?.full_name}</p>
             {studentData && (
-              <p className="text-sm text-muted-foreground">
-                Student ID: {studentData.student_id} | Course: {studentData.course} | Semester: {studentData.semester}
-              </p>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>Student ID: {studentData.student_id} | Course: {studentData.course} | Semester: {studentData.semester}</p>
+                {studentData.registered_by_profile && (
+                  <p>Registered by: {studentData.registered_by_profile.full_name}</p>
+                )}
+              </div>
             )}
           </div>
           <Button variant="outline" onClick={signOut}>

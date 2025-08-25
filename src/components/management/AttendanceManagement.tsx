@@ -116,7 +116,7 @@ const AttendanceManagement = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setAttendanceRecords(data || []);
+      setAttendanceRecords((data as any) || []);
     } catch (error) {
       console.error('Error fetching attendance records:', error);
       toast({

@@ -225,6 +225,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          profile_picture_url: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -235,6 +236,7 @@ export type Database = {
           full_name: string
           id: string
           phone?: string | null
+          profile_picture_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -245,6 +247,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          profile_picture_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -352,6 +355,7 @@ export type Database = {
           emergency_contact: string | null
           enrollment_date: string
           id: string
+          registered_by: string | null
           semester: number
           status: string
           student_id: string
@@ -364,6 +368,7 @@ export type Database = {
           emergency_contact?: string | null
           enrollment_date?: string
           id?: string
+          registered_by?: string | null
           semester?: number
           status?: string
           student_id: string
@@ -376,6 +381,7 @@ export type Database = {
           emergency_contact?: string | null
           enrollment_date?: string
           id?: string
+          registered_by?: string | null
           semester?: number
           status?: string
           student_id?: string
@@ -383,6 +389,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "students_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "students_user_id_fkey"
             columns: ["user_id"]
