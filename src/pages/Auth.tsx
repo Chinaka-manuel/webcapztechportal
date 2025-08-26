@@ -53,7 +53,7 @@ const Auth = () => {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-primary rounded-full p-3">
-              <GraduationCap className="h-8 w-8 text-primary-foreground" />
+{/*               <GraduationCap className="h-8 w-8 text-primary-foreground" /> */}
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">WEBCAPZ</CardTitle>
