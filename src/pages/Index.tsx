@@ -9,9 +9,11 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/20">
       <div className="text-center max-w-md mx-auto p-6">
         <div className="flex justify-center mb-6">
-          <div className="bg-primary rounded-full p-4">
-            <GraduationCap className="h-12 w-12 text-primary-foreground" />
-          </div>
+          <img 
+            src="/lovable-uploads/fbe5d1f1-a35b-47a7-8c54-80c47f04a9e1.png" 
+            alt="WEBCAPZ Technologies Logo" 
+            className="h-20 w-auto object-contain"
+          />
         </div>
         <h1 className="text-4xl font-bold mb-4">WEBCAPZ Technologies</h1>
         <p className="text-xl text-muted-foreground mb-8">
