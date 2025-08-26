@@ -15,7 +15,7 @@ const Index = () => {
             className="h-20 w-auto object-contain"
           />
         </div>
-        <h1 className="text-4xl font-bold mb-4">WEBCAPZ Technologies</h1>
+        <h1 className="text-4xl font-bold mb-4"></h1>
         <p className="text-xl text-muted-foreground mb-8">
           
         </p>
