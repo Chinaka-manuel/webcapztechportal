@@ -9,6 +9,7 @@ import CourseManagement from '@/components/management/CourseManagement';
 import ExamManagement from '@/components/management/ExamManagement';
 import AttendanceManagement from '@/components/management/AttendanceManagement';
 import QRCodeGenerator from '@/components/attendance/QRCodeGenerator';
+import ClassScheduling from '@/components/management/ClassScheduling';
 
 const StaffDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -102,10 +103,11 @@ const StaffDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="courses">My Courses</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="scheduling">Class Scheduling</TabsTrigger>
             <TabsTrigger value="qr-generator">QR Generator</TabsTrigger>
           </TabsList>
           
@@ -119,6 +121,10 @@ const StaffDashboard = () => {
           
           <TabsContent value="attendance">
             <AttendanceManagement />
+          </TabsContent>
+
+          <TabsContent value="scheduling">
+            <ClassScheduling />
           </TabsContent>
           
           <TabsContent value="qr-generator">

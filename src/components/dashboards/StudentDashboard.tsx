@@ -9,6 +9,8 @@ import QRCodeScanner from '@/components/attendance/QRCodeScanner';
 import StudentResults from '@/components/student/StudentResults';
 import StudentAttendance from '@/components/student/StudentAttendance';
 import StudentCourses from '@/components/student/StudentCourses';
+import StudentNotifications from '@/components/student/StudentNotifications';
+import StudentCertificates from '@/components/student/StudentCertificates';
 
 const StudentDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -125,11 +127,13 @@ const StudentDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="courses">My Courses</TabsTrigger>
             <TabsTrigger value="results">Results</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="qr-scanner">QR Scanner</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="certificates">Certificates</TabsTrigger>
           </TabsList>
           
           <TabsContent value="courses">
@@ -146,6 +150,14 @@ const StudentDashboard = () => {
           
           <TabsContent value="qr-scanner">
             <QRCodeScanner />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <StudentNotifications />
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <StudentCertificates />
           </TabsContent>
         </Tabs>
       </main>

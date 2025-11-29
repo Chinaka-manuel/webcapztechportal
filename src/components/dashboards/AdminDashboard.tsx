@@ -12,6 +12,8 @@ import CourseManagement from '@/components/management/CourseManagement';
 import ExamManagement from '@/components/management/ExamManagement';
 import AttendanceManagement from '@/components/management/AttendanceManagement';
 import QRCodeGenerator from '@/components/attendance/QRCodeGenerator';
+import CertificateManagement from '@/components/management/CertificateManagement';
+import ClassScheduling from '@/components/management/ClassScheduling';
 
 const AdminDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -109,13 +111,15 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="students" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="register">Register Student</TabsTrigger>
             <TabsTrigger value="staff">Staff</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
             <TabsTrigger value="qr-generator">QR Generator</TabsTrigger>
           </TabsList>
           
@@ -141,6 +145,14 @@ const AdminDashboard = () => {
           
           <TabsContent value="attendance">
             <AttendanceManagement />
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <CertificateManagement />
+          </TabsContent>
+
+          <TabsContent value="scheduling">
+            <ClassScheduling />
           </TabsContent>
           
           <TabsContent value="qr-generator">
