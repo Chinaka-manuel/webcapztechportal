@@ -65,6 +65,130 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          barcode_data: string
+          certificate_number: string
+          course_id: string
+          created_at: string
+          grade: string | null
+          id: string
+          issue_date: string
+          issued_by: string
+          remarks: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          barcode_data: string
+          certificate_number: string
+          course_id: string
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issue_date?: string
+          issued_by: string
+          remarks?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          barcode_data?: string
+          certificate_number?: string
+          course_id?: string
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issue_date?: string
+          issued_by?: string
+          remarks?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_schedules: {
+        Row: {
+          class_date: string
+          course_id: string
+          created_at: string
+          end_time: string
+          id: string
+          instructor_id: string
+          notes: string | null
+          room_number: string | null
+          start_time: string
+          status: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_date: string
+          course_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          instructor_id: string
+          notes?: string | null
+          room_number?: string | null
+          start_time: string
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_date?: string
+          course_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          instructor_id?: string
+          notes?: string | null
+          room_number?: string | null
+          start_time?: string
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedules_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           course_code: string
@@ -211,6 +335,47 @@ export type Database = {
           {
             foreignKeyName: "exams_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
