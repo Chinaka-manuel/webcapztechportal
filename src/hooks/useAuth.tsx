@@ -42,19 +42,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile
+          // Fetch user profile and role
           setTimeout(async () => {
-            const { data: profileData, error } = await supabase
+            const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
               .maybeSingle();
             
-            if (error) {
-              console.error('Error fetching profile:', error);
-            } else {
-              setProfile(profileData);
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              setLoading(false);
+              return;
             }
+
+            // Fetch role from user_roles table
+            const { data: roleData, error: roleError } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .order('role')
+              .limit(1)
+              .maybeSingle();
+            
+            if (roleError && roleError.code !== 'PGRST116') {
+              console.error('Error fetching role:', roleError);
+            }
+
+            setProfile(profileData ? { ...profileData, role: roleData?.role || 'student' } : null);
             setLoading(false);
           }, 0);
         } else {
@@ -70,19 +85,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle()
-          .then(({ data: profileData, error }) => {
-            if (error) {
-              console.error('Error fetching profile:', error);
-            } else {
-              setProfile(profileData);
-            }
-            setLoading(false);
-          });
+        Promise.all([
+          supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
+          supabase.from('user_roles').select('role').eq('user_id', session.user.id).order('role').limit(1).maybeSingle()
+        ]).then(([profileResult, roleResult]) => {
+          if (profileResult.error) {
+            console.error('Error fetching profile:', profileResult.error);
+          }
+          if (roleResult.error && roleResult.error.code !== 'PGRST116') {
+            console.error('Error fetching role:', roleResult.error);
+          }
+          setProfile(profileResult.data ? { ...profileResult.data, role: roleResult.data?.role || 'student' } : null);
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
