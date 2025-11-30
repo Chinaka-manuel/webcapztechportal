@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, GraduationCap, BookOpen, Calendar, QrCode, LogOut, UserPlus } from 'lucide-react';
 import StudentManagement from '@/components/management/StudentManagement';
-import StudentRegistration from '@/components/management/StudentRegistration';
+import UserRegistration from '@/components/management/UserRegistration';
 import StaffManagement from '@/components/management/StaffManagement';
 import CourseManagement from '@/components/management/CourseManagement';
 import ExamManagement from '@/components/management/ExamManagement';
@@ -113,7 +113,7 @@ const AdminDashboard = () => {
         <Tabs defaultValue="students" className="w-full">
           <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="students">Students</TabsTrigger>
-            <TabsTrigger value="register">Register Student</TabsTrigger>
+            <TabsTrigger value="register">Register User</TabsTrigger>
             <TabsTrigger value="staff">Staff</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
@@ -128,7 +128,7 @@ const AdminDashboard = () => {
           </TabsContent>
           
           <TabsContent value="register">
-            <StudentRegistration />
+            <UserRegistration />
           </TabsContent>
           
           <TabsContent value="staff">
