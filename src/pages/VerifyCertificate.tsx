@@ -44,7 +44,7 @@ const VerifyCertificate = () => {
         .from('certificates')
         .select(`
           *,
-          student:students(student_id, profiles(full_name, email)),
+          student:students(student_id, user_profile:profiles(full_name, email)),
           courses(course_name, course_code),
           issued_by_profile:profiles!certificates_issued_by_fkey(full_name)
         `)
@@ -131,7 +131,7 @@ const VerifyCertificate = () => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Student Name</p>
-                        <p className="font-semibold">{verificationResult.student.profiles.full_name}</p>
+                        <p className="font-semibold">{verificationResult.student.user_profile.full_name}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Student ID</p>

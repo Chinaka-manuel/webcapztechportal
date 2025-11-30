@@ -47,7 +47,7 @@ const CertificateManagement = () => {
         .from('certificates')
         .select(`
           *,
-          students!certificates_student_id_fkey(student_id, profiles!students_user_id_fkey(full_name)),
+          student:students(student_id, user_profile:profiles(full_name, email)),
           courses(course_name, course_code)
         `)
         .order('created_at', { ascending: false });
@@ -147,7 +147,7 @@ const CertificateManagement = () => {
           <div class="certificate">
             <h1>Certificate of Completion</h1>
             <p class="details">This is to certify that</p>
-            <p class="student-name">${cert.students?.profiles?.full_name || 'N/A'}</p>
+            <p class="student-name">${cert.student?.user_profile?.full_name || 'N/A'}</p>
             <p class="details">has successfully completed</p>
             <p class="details"><strong>${cert.courses?.course_name || 'N/A'} (${cert.courses?.course_code || 'N/A'})</strong></p>
             <p class="details">Grade: ${cert.grade || 'N/A'}</p>
@@ -276,7 +276,7 @@ const CertificateManagement = () => {
               {certificates.map((cert: any) => (
                 <TableRow key={cert.id}>
                   <TableCell className="font-mono">{cert.certificate_number}</TableCell>
-                  <TableCell>{cert.students?.profiles?.full_name || 'N/A'}</TableCell>
+                  <TableCell>{cert.student?.user_profile?.full_name || 'N/A'}</TableCell>
                   <TableCell>{cert.courses?.course_name || 'N/A'}</TableCell>
                   <TableCell>{cert.grade || 'N/A'}</TableCell>
                   <TableCell>{new Date(cert.issue_date).toLocaleDateString()}</TableCell>
