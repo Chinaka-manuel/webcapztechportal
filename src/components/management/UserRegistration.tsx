@@ -298,12 +298,28 @@ const UserRegistration = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="studentId">Student ID *</Label>
-                  <Input
-                    id="studentId"
-                    value={formData.studentId}
-                    onChange={(e) => setFormData({...formData, studentId: e.target.value})}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="studentId"
+                      value={formData.studentId}
+                      onChange={(e) => setFormData({...formData, studentId: e.target.value})}
+                      required
+                      placeholder="e.g., STU20250001"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        const { data, error } = await supabase.rpc('generate_student_id');
+                        if (!error && data) {
+                          setFormData({...formData, studentId: data});
+                          toast({ title: "Student ID generated", description: data });
+                        }
+                      }}
+                    >
+                      Auto
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="course">Course *</Label>
@@ -347,12 +363,28 @@ const UserRegistration = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="employeeId">Employee ID *</Label>
-                <Input
-                  id="employeeId"
-                  value={formData.employeeId}
-                  onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                  required
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="employeeId"
+                    value={formData.employeeId}
+                    onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                    required
+                    placeholder="e.g., EMP20250001"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      const { data, error } = await supabase.rpc('generate_employee_id');
+                      if (!error && data) {
+                        setFormData({...formData, employeeId: data});
+                        toast({ title: "Employee ID generated", description: data });
+                      }
+                    }}
+                  >
+                    Auto
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="department">Department *</Label>

@@ -599,6 +599,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_employee_id: { Args: never; Returns: string }
+      generate_student_id: { Args: never; Returns: string }
       get_current_user_role: { Args: never; Returns: string }
       get_user_roles: {
         Args: { _user_id: string }
