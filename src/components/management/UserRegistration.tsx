@@ -28,7 +28,7 @@ interface UserRegistrationData {
 }
 
 const UserRegistration = () => {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
   
@@ -47,29 +47,6 @@ const UserRegistration = () => {
     position: '',
     profilePicture: null,
   });
-
-  const handleFileUpload = async (file: File, userId: string): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('profile-pictures')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('profile-pictures')
-        .getPublicUrl(filePath);
-
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      return null;
-    }
-  };
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,84 +69,69 @@ const UserRegistration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !session) return;
 
     setLoading(true);
 
     try {
-      // Create user account with a temporary password
+      // Generate a temporary password
       const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: tempPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: formData.fullName,
-          }
-        }
+
+      // Call edge function to create user
+      const response = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: formData.email,
+          password: tempPassword,
+          fullName: formData.fullName,
+          phone: formData.phone || null,
+          address: formData.address || null,
+          role: formData.role,
+          profilePictureUrl: null, // Will handle upload separately if needed
+          studentData: formData.role === 'student' ? {
+            studentId: formData.studentId,
+            course: formData.course,
+            semester: formData.semester,
+            emergencyContact: formData.emergencyContact,
+          } : null,
+          staffData: formData.role === 'staff' ? {
+            employeeId: formData.employeeId,
+            department: formData.department,
+            position: formData.position,
+          } : null,
+        },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
-
-      // Upload profile picture if provided
-      let uploadedPictureUrl = null;
-      if (formData.profilePicture) {
-        uploadedPictureUrl = await handleFileUpload(formData.profilePicture, authData.user.id);
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to create user');
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: formData.email,
-          full_name: formData.fullName,
-          phone: formData.phone,
-          address: formData.address,
-          profile_picture_url: uploadedPictureUrl,
-        });
+      const result = response.data;
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create user');
+      }
 
-      if (profileError) throw profileError;
+      // Upload profile picture if provided
+      if (formData.profilePicture && result.userId) {
+        const fileExt = formData.profilePicture.name.split('.').pop();
+        const fileName = `${result.userId}.${fileExt}`;
+        const filePath = `${result.userId}/${fileName}`;
 
-      // Assign role in user_roles table
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: formData.role,
-          created_by: profile.id,
-        });
+        const { error: uploadError } = await supabase.storage
+          .from('profile-pictures')
+          .upload(filePath, formData.profilePicture, { upsert: true });
 
-      if (roleError) throw roleError;
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('profile-pictures')
+            .getPublicUrl(filePath);
 
-      // Create role-specific record
-      if (formData.role === 'student') {
-        const { error: studentError } = await supabase
-          .from('students')
-          .insert({
-            user_id: authData.user.id,
-            student_id: formData.studentId!,
-            course: formData.course!,
-            semester: formData.semester!,
-            emergency_contact: formData.emergencyContact,
-            registered_by: profile.id,
-          });
-
-        if (studentError) throw studentError;
-      } else if (formData.role === 'staff') {
-        const { error: staffError } = await supabase
-          .from('staff')
-          .insert({
-            user_id: authData.user.id,
-            employee_id: formData.employeeId!,
-            department: formData.department!,
-            position: formData.position!,
-          });
-
-        if (staffError) throw staffError;
+          // Update profile with picture URL
+          await supabase
+            .from('profiles')
+            .update({ profile_picture_url: urlData.publicUrl })
+            .eq('id', result.userId);
+        }
       }
 
       toast({

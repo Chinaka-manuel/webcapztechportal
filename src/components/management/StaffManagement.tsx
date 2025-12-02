@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface Staff {
@@ -16,17 +17,21 @@ interface Staff {
   position: string;
   hire_date: string;
   salary?: number;
+  user_id: string;
   profiles: {
     full_name: string;
     email: string;
     phone?: string;
-  };
+  } | null;
 }
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingStaff, setDeletingStaff] = useState<Staff | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
 
   const [formData, setFormData] = useState({
@@ -47,7 +52,7 @@ const StaffManagement = () => {
         .from('staff')
         .select(`
           *,
-          profiles (
+          profiles:user_id (
             full_name,
             email,
             phone
@@ -56,7 +61,7 @@ const StaffManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStaff(data || []);
+      setStaff((data as any) || []);
     } catch (error) {
       console.error('Error fetching staff:', error);
       toast({
@@ -86,11 +91,10 @@ const StaffManagement = () => {
         if (error) throw error;
         toast({ title: "Staff member updated successfully" });
       } else {
-        // Note: user_id field needs to be handled properly
         toast({ 
           variant: "destructive",
-          title: "Feature Not Available", 
-          description: "Staff creation requires user account setup" 
+          title: "Use User Registration", 
+          description: "Please use the User Registration tab to add new staff" 
         });
         return;
       }
@@ -108,16 +112,32 @@ const StaffManagement = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this staff member?')) return;
+  const handleDeleteClick = (staffMember: Staff) => {
+    setDeletingStaff(staffMember);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deletingStaff) return;
+
+    setDeleteLoading(true);
     try {
-      const { error } = await supabase
-        .from('staff')
-        .delete()
-        .eq('id', id);
+      const response = await supabase.functions.invoke('admin-delete-user', {
+        body: {
+          userId: deletingStaff.id,
+          userType: 'staff',
+        },
+      });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete staff');
+      }
+
+      const result = response.data;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete staff');
+      }
+
       toast({ title: "Staff member deleted successfully" });
       fetchStaff();
     } catch (error: any) {
@@ -126,6 +146,10 @@ const StaffManagement = () => {
         title: "Error",
         description: error.message,
       });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+      setDeletingStaff(null);
     }
   };
 
@@ -152,136 +176,159 @@ const StaffManagement = () => {
   };
 
   if (loading) {
-    return <div>Loading staff...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Loading staff...</div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Staff Management</CardTitle>
-            <CardDescription>Manage staff members and their information</CardDescription>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setEditingStaff(null); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Staff
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingStaff ? 'Edit' : 'Add'} Staff Member</DialogTitle>
-                <DialogDescription>
-                  {editingStaff ? 'Update' : 'Add new'} staff member information.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="employee_id">Employee ID</Label>
-                  <Input
-                    id="employee_id"
-                    value={formData.employee_id}
-                    onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="position">Position</Label>
-                  <Input
-                    id="position"
-                    value={formData.position}
-                    onChange={(e) => setFormData({...formData, position: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="hire_date">Hire Date</Label>
-                  <Input
-                    id="hire_date"
-                    type="date"
-                    value={formData.hire_date}
-                    onChange={(e) => setFormData({...formData, hire_date: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="salary">Salary (Optional)</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    step="0.01"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({...formData, salary: e.target.value})}
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  {editingStaff ? 'Update' : 'Add'} Staff Member
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Staff Management</CardTitle>
+              <CardDescription>Manage staff members and their information</CardDescription>
+            </div>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={() => { resetForm(); setEditingStaff(null); }}>
+                  Edit Mode
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Employee ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Position</TableHead>
-              <TableHead>Hire Date</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-             {staff.map((staffMember) => (
-               <TableRow key={staffMember.id}>
-                 <TableCell className="font-medium">{staffMember.employee_id}</TableCell>
-                 <TableCell>{staffMember.profiles?.full_name || 'Unknown Staff'}</TableCell>
-                <TableCell>{staffMember.department}</TableCell>
-                <TableCell>{staffMember.position}</TableCell>
-                <TableCell>{new Date(staffMember.hire_date).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(staffMember)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(staffMember.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Staff Member</DialogTitle>
+                  <DialogDescription>
+                    Update staff member information.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="employee_id">Employee ID</Label>
+                    <Input
+                      id="employee_id"
+                      value={formData.employee_id}
+                      onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
+                      required
+                    />
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {staff.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No staff members found. Add some staff to get started.
+                  <div>
+                    <Label htmlFor="department">Department</Label>
+                    <Input
+                      id="department"
+                      value={formData.department}
+                      onChange={(e) => setFormData({...formData, department: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="position">Position</Label>
+                    <Input
+                      id="position"
+                      value={formData.position}
+                      onChange={(e) => setFormData({...formData, position: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="hire_date">Hire Date</Label>
+                    <Input
+                      id="hire_date"
+                      type="date"
+                      value={formData.hire_date}
+                      onChange={(e) => setFormData({...formData, hire_date: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="salary">Salary (Optional)</Label>
+                    <Input
+                      id="salary"
+                      type="number"
+                      step="0.01"
+                      value={formData.salary}
+                      onChange={(e) => setFormData({...formData, salary: e.target.value})}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Update Staff Member
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Hire Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {staff.map((staffMember) => (
+                <TableRow key={staffMember.id}>
+                  <TableCell className="font-medium">{staffMember.employee_id}</TableCell>
+                  <TableCell>{staffMember.profiles?.full_name || 'Unknown Staff'}</TableCell>
+                  <TableCell>{staffMember.department}</TableCell>
+                  <TableCell>{staffMember.position}</TableCell>
+                  <TableCell>{new Date(staffMember.hire_date).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(staffMember)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteClick(staffMember)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {staff.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No staff members found. Use the User Registration tab to add staff.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingStaff?.profiles?.full_name || 'this staff member'}? 
+              This will permanently remove their account, profile, and all associated data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm} 
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
