@@ -107,8 +107,13 @@ const UserRegistration = () => {
 
       const result = response.data;
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create user');
+      // Check for error in response data (from edge function)
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
+      if (!result?.success) {
+        throw new Error('Failed to create user');
       }
 
       // Upload profile picture if provided
