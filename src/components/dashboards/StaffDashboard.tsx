@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Calendar, QrCode, LogOut, Users } from 'lucide-react';
+import { BookOpen, Calendar, QrCode, LogOut, Users, Settings } from 'lucide-react';
 import CourseManagement from '@/components/management/CourseManagement';
 import ExamManagement from '@/components/management/ExamManagement';
 import AttendanceManagement from '@/components/management/AttendanceManagement';
 import QRCodeGenerator from '@/components/attendance/QRCodeGenerator';
 import ClassScheduling from '@/components/management/ClassScheduling';
+import ChangePassword from '@/components/profile/ChangePassword';
 
 const StaffDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -103,12 +104,13 @@ const StaffDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="courses">My Courses</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="scheduling">Class Scheduling</TabsTrigger>
             <TabsTrigger value="qr-generator">QR Generator</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="courses">
@@ -129,6 +131,10 @@ const StaffDashboard = () => {
           
           <TabsContent value="qr-generator">
             <QRCodeGenerator />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <ChangePassword />
           </TabsContent>
         </Tabs>
       </main>

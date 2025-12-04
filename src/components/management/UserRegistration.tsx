@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, User } from 'lucide-react';
+import { Upload, User, Copy, Check, Mail, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface UserRegistrationData {
   fullName: string;
@@ -27,10 +28,20 @@ interface UserRegistrationData {
   profilePicture: File | null;
 }
 
+interface CreatedUserCredentials {
+  email: string;
+  password: string;
+  fullName: string;
+  role: string;
+}
+
 const UserRegistration = () => {
   const { profile, session } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedUserCredentials | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   const [formData, setFormData] = useState<UserRegistrationData>({
     fullName: '',
@@ -139,9 +150,17 @@ const UserRegistration = () => {
         }
       }
 
+      // Store credentials to show admin
+      setCreatedCredentials({
+        email: formData.email,
+        password: tempPassword,
+        fullName: formData.fullName,
+        role: formData.role,
+      });
+
       toast({
         title: "User registered successfully",
-        description: `${formData.fullName} has been registered as ${formData.role}. Temporary password: ${tempPassword}`,
+        description: `${formData.fullName} has been registered. Credentials shown below.`,
       });
 
       // Reset form
@@ -162,29 +181,114 @@ const UserRegistration = () => {
       });
       setProfilePictureUrl('');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error registering user:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to register user";
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: error.message || "Failed to register user",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
+  const copyCredentials = () => {
+    if (!createdCredentials) return;
+    const text = `Email: ${createdCredentials.email}\nTemporary Password: ${createdCredentials.password}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Credentials copied to clipboard" });
+  };
+
+  const sendWelcomeEmail = async () => {
+    if (!createdCredentials) return;
+    setSendingEmail(true);
+    try {
+      const loginUrl = `${window.location.origin}/auth`;
+      const response = await supabase.functions.invoke('send-welcome-email', {
+        body: {
+          email: createdCredentials.email,
+          fullName: createdCredentials.fullName,
+          role: createdCredentials.role,
+          tempPassword: createdCredentials.password,
+          loginUrl,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Email sent successfully",
+        description: `Welcome email with credentials sent to ${createdCredentials.email}`,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to send email";
+      toast({
+        variant: "destructive",
+        title: "Failed to send email",
+        description: errorMessage,
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const dismissCredentials = () => {
+    setCreatedCredentials(null);
+    setCopied(false);
+  };
+
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Register New User</CardTitle>
-        <CardDescription>
-          Create a new student or contract staff account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Picture Upload */}
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Credentials Display */}
+      {createdCredentials && (
+        <Alert className="border-2 border-primary bg-primary/5">
+          <AlertCircle className="h-5 w-5 text-primary" />
+          <AlertTitle className="text-lg font-bold text-primary">User Created Successfully!</AlertTitle>
+          <AlertDescription className="mt-4 space-y-4">
+            <div className="bg-background p-4 rounded-lg border space-y-2">
+              <p className="font-medium">User: {createdCredentials.fullName}</p>
+              <p className="font-medium">Role: {createdCredentials.role}</p>
+              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950 rounded border border-amber-200 dark:border-amber-800">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Login Credentials:</p>
+                <p className="font-mono mt-1">Email: {createdCredentials.email}</p>
+                <p className="font-mono font-bold text-lg text-amber-700 dark:text-amber-300">
+                  Password: {createdCredentials.password}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={copyCredentials}>
+                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? 'Copied!' : 'Copy Credentials'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={sendWelcomeEmail} disabled={sendingEmail}>
+                <Mail className="w-4 h-4 mr-2" />
+                {sendingEmail ? 'Sending...' : 'Send Welcome Email'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={dismissCredentials}>
+                Dismiss
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Register New User</CardTitle>
+          <CardDescription>
+            Create a new student or contract staff account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Profile Picture Upload */}
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="w-32 h-32">
               <AvatarImage src={profilePictureUrl} />
@@ -384,12 +488,13 @@ const UserRegistration = () => {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Registering...' : `Register ${formData.role === 'student' ? 'Student' : 'Contract Staff'}`}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Registering...' : `Register ${formData.role === 'student' ? 'Student' : 'Contract Staff'}`}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
