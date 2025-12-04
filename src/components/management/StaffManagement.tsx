@@ -52,7 +52,7 @@ const StaffManagement = () => {
         .from('staff')
         .select(`
           *,
-          profiles:user_id (
+          profiles!staff_user_id_fkey (
             full_name,
             email,
             phone

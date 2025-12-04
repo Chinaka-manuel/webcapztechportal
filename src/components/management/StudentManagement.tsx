@@ -61,14 +61,14 @@ const StudentManagement = () => {
         .from('students')
         .select(`
           *,
-          profiles:user_id (
+          profiles!students_user_id_fkey (
             full_name,
             email,
             phone,
             profile_picture_url,
             address
           ),
-          registered_by_profile:profiles!registered_by (
+          registered_by_profile:profiles!students_registered_by_fkey (
             full_name
           )
         `)
