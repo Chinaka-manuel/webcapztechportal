@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Calendar, QrCode, LogOut, CheckCircle } from 'lucide-react';
+import { BookOpen, Calendar, QrCode, LogOut, CheckCircle, Settings } from 'lucide-react';
 import QRCodeScanner from '@/components/attendance/QRCodeScanner';
 import StudentResults from '@/components/student/StudentResults';
 import StudentAttendance from '@/components/student/StudentAttendance';
 import StudentCourses from '@/components/student/StudentCourses';
 import StudentNotifications from '@/components/student/StudentNotifications';
 import StudentCertificates from '@/components/student/StudentCertificates';
+import ChangePassword from '@/components/profile/ChangePassword';
 
 const StudentDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -127,13 +128,14 @@ const StudentDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="courses">My Courses</TabsTrigger>
             <TabsTrigger value="results">Results</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="qr-scanner">QR Scanner</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="courses">
@@ -158,6 +160,10 @@ const StudentDashboard = () => {
 
           <TabsContent value="certificates">
             <StudentCertificates />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <ChangePassword />
           </TabsContent>
         </Tabs>
       </main>
